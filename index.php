@@ -1,3 +1,4 @@
+  GNU nano 4.8                                                                                        index.php                                                                                                   
 <?php
     function getUrl() {
         if(isset($_SERVER['PATH_INFO'])) {
@@ -5,6 +6,7 @@
             $url = substr($url, 1); // remove first slash
             $url = filter_var($url, FILTER_SANITIZE_URL); // sanitize URL
             $url = explode('/', $url);
+            array_shift($url);
 
             return $url;
         }
@@ -29,7 +31,9 @@
     $url = getUrl();
 
     header('Content-Type: application/json; charset=utf-8');
-    if($url[0] == 'joke') {
+    if($url[0] == "") {
+        echo '{"usage": {"/joke": "get a joke", "/notajoke": "get not a joke"}}';
+    } else if($url[0] == 'joke') {
         echo '{"type": "joke", "message": "' . $jokes[array_rand($jokes)] . '"}';
     } else if($url[0] == 'notajoke') {
         echo '{"type": "notajoke", "message": "' . $notajokes[array_rand($notajokes)] . '"}';
