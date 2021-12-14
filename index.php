@@ -1,4 +1,3 @@
-  GNU nano 4.8                                                                                        index.php                                                                                                   
 <?php
     function getUrl() {
         if(isset($_SERVER['PATH_INFO'])) {
@@ -24,8 +23,8 @@
     ];
 
     $notajokes = [
-        'Du Hurensohn',
-        'Du Spast'
+        'Test1',
+        'Test2'
     ];
 
     $url = getUrl();
@@ -37,6 +36,12 @@
         echo '{"type": "joke", "message": "' . $jokes[array_rand($jokes)] . '"}';
     } else if($url[0] == 'notajoke') {
         echo '{"type": "notajoke", "message": "' . $notajokes[array_rand($notajokes)] . '"}';
+    } else if($url[0] == 'rate') {
+        if(isset($_POST['rating']) && isset($_POST['jokeId'])) {
+            echo '{"type": "Your rating: ' . $_POST['rating'] . ' of joke '.$_POST['jokeId'].'"}';
+        } else {
+            echo '{"type": "error", "message": "wrong format"}';
+        }
     } else {
         echo '{"type": "error", "message": "404"}';
     }
