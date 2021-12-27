@@ -82,7 +82,7 @@
                     // Rate a joke
                     // -----------------------------------------------
                     if (isset($_POST['id']) && isset($_POST['rating'])) {
-                        echo '{"type": "your rating: ' . $_POST['rating'] . ' of post ' . $_POST['id'] . '", "status" => "200"}';
+                        echo '{"type": "your rating: ' . $_POST['rating'] . ' of post ' . $_POST['id'] . '", "status": "200"}';
                     } else {
                         errorWrongFormat();
                     }
