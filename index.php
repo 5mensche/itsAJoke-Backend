@@ -1,9 +1,5 @@
 <?php
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-
-    $conn = new mysqli("10.123.45.70", "lamam", "Admin123!", "itsajoke");
+    $conn = new mysqli("10.123.45.70", "<user>", "<pw>", "itsajoke");
 
     if ($conn->connect_error) {
         die("Database Connection failed: " . $conn->connect_error);
@@ -21,7 +17,7 @@
         }
     }
 
-    function errorWrongFormat(){echo '{"type": "error", "message": "Wrong format", "status": "406"}';}
+    function errorWrongFormat($detail = 'null'){echo '{"type": "error", "message": "Wrong format", "detail": "' . $detail . '", "status": "406"}';}
     function errorNotImplemented(){echo '{"type": "error", "message": "Not implemented yet", "status": "501"}';}
     function errorNotFound() {echo '{"type": "error", "message": "Not Found", "status": "404"}';}
 
@@ -29,7 +25,7 @@
         $response = ['usage' => ['/jokes' => ['/get' => ['Description' => 'get the joke from provided ID', 'POST' => 'id={id}'], '/random' => ['Description' => 'get a random joke'], '/rate' => ['Description' => 'rate a joke with provided ID and rating', 'POST' => 'id={id}&rating={rating}'], "/listTop5" => ['Description' => 'List top 5 jokes']]], 'status' => '200'];
         echo json_encode($response);
     }
-
+    
     $url = getUrl();
 
     header('Content-Type: application/json; charset=utf-8');
@@ -45,19 +41,20 @@
                     // Get a joke with id
                     // -----------------------------------------------
                     if(isset($_POST['id'])) {
-                        $stmt = $conn->prepare("SELECT id, joke FROM jokes WHERE id LIKE ? LIMIT 1");
-                        $stmt->bind_param('i', filter_var($_POST['id'], FILTER_VALIDATE_INT));
+                        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+                        $stmt = $conn->prepare("SELECT * FROM jokes WHERE id LIKE ? LIMIT 1");
+                        $stmt->bind_param('i', $id);
                         $stmt->execute();
                         $result = $stmt->get_result();
 
                         if ($result->num_rows > 0) {
                             while($row = $result->fetch_assoc()) {
-                                $respose = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'status' => '200'];
+                                $response = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'rating' => $row['rating'], 'likes' => $row['likes'], 'dislikes' => $row['dislikes'], 'status' => '200'];
                             }
                         } else {
-                            $respose = ['type' => 'error', 'message' => 'unknown error', 'status' => '530'];
+                            $response = ['type' => 'error', 'message' => 'unknown error', 'status' => '530'];
                         }
-                        echo json_encode($respose);
+                        echo json_encode($response);
                     } else {
                         errorWrongFormat();
                     }
@@ -65,24 +62,60 @@
                     // -----------------------------------------------
                     // Get a random joke
                     // -----------------------------------------------
-                    $stmt = $conn->prepare("SELECT id, joke FROM jokes ORDER BY RAND() LIMIT 1");
+                    $stmt = $conn->prepare("SELECT * FROM jokes ORDER BY RAND() LIMIT 1");
                     $stmt->execute();
                     $result = $stmt->get_result();
 
                     if ($result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
-                            $respose = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'status' => '200'];
+                            $response = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'rating' => $row['rating'], 'likes' => $row['likes'], 'dislikes' => $row['dislikes'], 'status' => '200'];
                         }
                     } else {
-                        $respose = ['type' => 'error', 'message' => 'unknown error', 'status' => '530'];
+                        $response = ['type' => 'error', 'message' => 'unknown error', 'status' => '530'];
                     }
-                    echo json_encode($respose);
+                    echo json_encode($response);
                 } else if ($url[1] == 'rate') {
                     // -----------------------------------------------
                     // Rate a joke
                     // -----------------------------------------------
                     if (isset($_POST['id']) && isset($_POST['rating'])) {
-                        echo '{"type": "your rating: ' . $_POST['rating'] . ' of post ' . $_POST['id'] . '", "status": "200"}';
+                        $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
+                        $rating = filter_var($_POST['rating'], FILTER_VALIDATE_INT);
+
+                        $stmt = $conn->prepare("SELECT rating, likes, dislikes FROM jokes WHERE id LIKE ? LIMIT 1;");
+                        $stmt->bind_param('i', $id);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        
+                        if ($result->num_rows > 0) {
+                            while($row = $result->fetch_assoc()) {
+                                $jokeRating = $row['rating'];
+                                $jokeLikes = $row['likes'];
+                                $jokeDislikes = $row['dislikes'];
+                            }
+                        } else {
+                            errorWrongFormat('Unknown id');
+                            exit();
+                        }
+
+                        if($rating == 1) {
+                            $jokeLikes++;
+                            $jokeRating++;
+                        } else if($rating == 2) {
+                            $jokeDislikes++;
+                            $jokeRating--;
+                        } else {
+                            errorWrongFormat('Unknown rating type');
+                            exit();
+                        }
+
+                        $stmt = $conn->prepare("UPDATE jokes SET rating = ?, likes = ?, dislikes = ? WHERE id LIKE ?;");
+                        $stmt->bind_param('iiii', $jokeRating, $jokeLikes, $jokeDislikes, $id);
+                        $stmt->execute();
+
+                        $response = ['status' => '200'];
+
+                        echo json_encode($response);
                     } else {
                         errorWrongFormat();
                     }
@@ -90,7 +123,19 @@
                     // -----------------------------------------------
                     // get the top 5 posts
                     // -----------------------------------------------
-                    errorNotImplemented();
+                    $jokes = [];
+
+                    $stmt = $conn->prepare("SELECT * FROM jokes ORDER BY rating DESC LIMIT 5;");
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    if ($result->num_rows > 0) {
+                        while($row = $result->fetch_assoc()) {
+                            $jokes['jokes'][] = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'rating' => $row['rating'], 'likes' => $row['likes'], 'dislikes' => $row['dislikes']];
+                        }
+                    }
+                    $jokes['status'] '200';
+
+                    echo json_encode($jokes);
                 } else {
                     errorNotFound();
                 }
