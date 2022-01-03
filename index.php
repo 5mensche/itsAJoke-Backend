@@ -130,10 +130,10 @@
                     $result = $stmt->get_result();
                     if ($result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
-                            $jokes['jokes'][] = ['type' => 'joke', 'id' => $row['id'], 'joke' => $row['joke'], 'rating' => $row['rating'], 'likes' => $row['likes'], 'dislikes' => $row['dislikes']];
+                            $jokes['jokes'][] = ['type' => 'joke', 'joke' => $row['joke'], 'rating' => $row['rating']];
                         }
                     }
-                    $jokes['status'] '200';
+                    $jokes['status'] = '200';
 
                     echo json_encode($jokes);
                 } else {
