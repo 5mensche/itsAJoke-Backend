@@ -1,5 +1,5 @@
 <?php
-    $conn = new mysqli("10.123.45.70", "<user>", "<pw>", "itsajoke");
+    $conn = new mysqli("<ip>", "<user>", "<pw>", "itsajoke");
 
     if ($conn->connect_error) {
         die("Database Connection failed: " . $conn->connect_error);
